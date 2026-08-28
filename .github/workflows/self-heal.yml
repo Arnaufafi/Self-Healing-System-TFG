@@ -1,0 +1,96 @@
+name: Self-Heal (open a fix PR)
+
+# The "GitHub PR-on-CI" loop.
+#
+# Triggered manually, or by another repository's failing CI through the GitHub
+# API, this job clones a target repo at a base branch, reproduces the failure
+# (a crashing `main.py` or a failing pytest node), runs the multi-agent
+# self-healing pipeline inside a Docker sandbox, and — on success — pushes a
+# `selfheal/<id>` branch and opens a Pull Request with the fix.
+#
+# It NEVER merges. Human review is the merge gate.
+#
+# --- Triggering from a target repo's failing CI -----------------------------
+# Add a final, `if: failure()` step to the target repo's CI workflow:
+#
+#     - name: Summon the self-healer
+#       if: failure()
+#       env:
+#         GH_TOKEN: ${{ secrets.HEAL_DISPATCH_TOKEN }}   # PAT, `actions:write`
+#       run: |
+#         gh workflow run self-heal.yml \
+#           --repo your-org/self-healing-system \
+#           -f repo=${{ github.repository }} \
+#           -f base=${{ github.ref_name }} \
+#           -f test=tests/test_x.py::test_y      # omit for crash-entry
+#
+# --- Required secrets (on THIS repo) ----------------------------------------
+#   HEAL_GITHUB_TOKEN  PAT with `repo` scope on the TARGET repo (clone+push+PR).
+#                      The built-in GITHUB_TOKEN only reaches THIS repo, so a
+#                      PAT is required to act on a different repository.
+#   OPENAI_API_KEY     LLM credential (Azure AI Foundry / OpenAI-compatible).
+#   OPENAI_API_BASE    LLM endpoint base URL.
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: "Target repository to heal (owner/name)"
+        required: true
+      base:
+        description: "Base branch to heal and open the PR against"
+        required: true
+        default: "main"
+      test:
+        description: "Optional pytest node to heal (test-entry). Empty = auto-detect (tests, then crash)."
+        required: false
+        default: ""
+      draft:
+        description: "Open the PR as a draft"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read   # this repo only; the target repo is reached via HEAL_GITHUB_TOKEN
+
+jobs:
+  self-heal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout the self-healing system
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build the validation sandbox image
+        run: docker build -t self-healing-sandbox:latest -f docker/sandbox.Dockerfile .
+
+      - name: Heal the target and open a PR (never merges)
+        env:
+          GITHUB_TOKEN: ${{ secrets.HEAL_GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_BASE: ${{ secrets.OPENAI_API_BASE }}
+          CDD_AGENT_MODE: real
+          CDD_LLM_MODEL: openai/gpt-4.1-mini
+          CDD_SWEAGENT_USE_DOCKER: "1"
+          # Inputs are passed through env (never interpolated into the shell
+          # directly) to avoid script injection.
+          IN_REPO: ${{ inputs.repo }}
+          IN_BASE: ${{ inputs.base }}
+          IN_TEST: ${{ inputs.test }}
+          IN_DRAFT: ${{ inputs.draft }}
+        run: |
+          ARGS=(--repo "$IN_REPO" --base "$IN_BASE")
+          # Explicit node => test-entry; empty => auto-detect (tests, then crash).
+          if [ -n "$IN_TEST" ]; then ARGS+=(--test "$IN_TEST"); else ARGS+=(--auto); fi
+          if [ "$IN_DRAFT" = "true" ]; then ARGS+=(--draft); fi
+          python scripts/heal_and_pr.py "${ARGS[@]}"

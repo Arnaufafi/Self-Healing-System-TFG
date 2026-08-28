@@ -1,0 +1,102 @@
+# Self-Heal on push — TEMPLATE for the MONITORED repository.
+#
+# Copy this file into the *target* repo (the app you want healed) as
+# `.github/workflows/selfheal-on-push.yml`.  Every push to any branch — which
+# includes a merge to main — probes the repo: if the test suite fails or
+# `python main.py` crashes, the multi-agent self-healing system runs in a
+# Docker sandbox and opens a Pull Request with the fix.
+#
+# It NEVER merges. Human review is the merge gate.  Everything green => the
+# job ends quietly with success.
+#
+# --- Requirements (one-time setup on the TARGET repo) ------------------------
+# 1. The self-healing system repo must be reachable from Actions: push it to
+#    GitHub and set HEALER_REPO below.  If it is private, add a secret
+#    `HEALER_REPO_TOKEN` (PAT with read access to it) — public needs none.
+# 2. Secrets for the LLM: `OPENAI_API_KEY` and `OPENAI_API_BASE`
+#    (Azure AI Foundry / any OpenAI-compatible endpoint).
+# 3. Repo (or org) setting: Actions → General → Workflow permissions →
+#    enable "Allow GitHub Actions to create and approve pull requests".
+# 4. The healing sandbox ships only pytest; if your app needs third-party
+#    packages at *runtime*, vendor them or extend docker/sandbox.Dockerfile.
+#
+# --- Anti-loop ---------------------------------------------------------------
+# * Pushes of `selfheal/**` branches are ignored below.
+# * PRs opened with the default GITHUB_TOKEN do not re-trigger workflows
+#   (GitHub's own recursion guard), so a heal can never heal itself.
+
+name: Self-Heal on push
+
+on:
+  push:
+    branches-ignore:
+      - "selfheal/**"
+
+# One heal at a time per branch; a newer push waits for the running one.
+concurrency:
+  group: selfheal-${{ github.ref }}
+  cancel-in-progress: false
+
+# The default GITHUB_TOKEN is enough for same-repo push + PR.
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  # owner/name of the repo that hosts the self-healing system.
+  HEALER_REPO: ArnauFaFi/Self-healing-system
+
+jobs:
+  self-heal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout the self-healing system
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.HEALER_REPO }}
+          # Empty/missing secret falls back to the default token (public repo).
+          token: ${{ secrets.HEALER_REPO_TOKEN || github.token }}
+          path: healer
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the healer's dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r healer/requirements.txt
+
+      # detect_any_failure runs this repo's tests with the HOST python, so the
+      # target's own dependencies must be importable.  Best effort: skip when
+      # the target ships no requirements.txt.
+      - name: Install the target's dependencies (if any)
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone --depth 1 --branch "${GITHUB_REF_NAME}" \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}.git" /tmp/target-probe
+          if [ -f /tmp/target-probe/requirements.txt ]; then
+            pip install -r /tmp/target-probe/requirements.txt
+          fi
+
+      - name: Build the validation sandbox image
+        run: docker build -t self-healing-sandbox:latest -f healer/docker/sandbox.Dockerfile healer
+
+      - name: Probe, heal and open a PR (never merges)
+        working-directory: healer
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_BASE: ${{ secrets.OPENAI_API_BASE }}
+          CDD_AGENT_MODE: real
+          CDD_LLM_MODEL: openai/gpt-4.1-mini
+          CDD_SWEAGENT_USE_DOCKER: "1"
+          # Context values flow through env (never interpolated into the
+          # shell) to avoid script injection via branch names.
+          IN_REPO: ${{ github.repository }}
+          IN_BASE: ${{ github.ref_name }}
+        run: python scripts/heal_and_pr.py --repo "$IN_REPO" --base "$IN_BASE" --auto
