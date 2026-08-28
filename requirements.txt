@@ -1,0 +1,13 @@
+pydantic>=2.6,<3.0
+langgraph>=0.2,<1.0
+docker>=7.0,<8.0
+gitpython>=3.1,<4.0
+
+# Real agents (optional — only needed with CDD_AGENT_MODE=real)
+mini-swe-agent>=2.2
+
+# Dev
+pytest>=8.0
+pytest-asyncio>=0.23
+mypy>=1.10
+ruff>=0.5

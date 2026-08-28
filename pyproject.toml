@@ -1,0 +1,80 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "self-healing-cdd"
+version = "0.1.0"
+description = "Enterprise-grade Self-Healing Code system based on Crash Driven Development."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "TFG" }]
+dependencies = [
+    "pydantic>=2.6,<3.0",
+    "langgraph>=0.2,<1.0",
+    "docker>=7.0,<8.0",
+    "gitpython>=3.1,<4.0",
+]
+
+[project.optional-dependencies]
+agents = [
+    "mini-swe-agent>=2.2",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "mypy>=1.10",
+    "ruff>=0.5",
+]
+all = [
+    "self-healing-cdd[agents,dev]",
+]
+
+[project.scripts]
+self-healing-demo = "src.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+# ---------------------------------------------------------------------------
+# Tooling configuration.
+# ---------------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-ra --strict-markers --strict-config"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_any_generics = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+check_untyped_defs = true
+ignore_missing_imports = true  # docker / git stubs are optional dependencies.
+
+[[tool.mypy.overrides]]
+module = ["docker.*", "git.*", "langgraph.*"]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "ASYNC", "D", "RUF"]
+ignore = ["D203", "D213"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]  # Tests do not require docstrings.
+"src/main.py" = ["D"]
+"scripts/*" = ["E402"]  # Entry-point scripts bootstrap sys.path before importing.
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"

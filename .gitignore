@@ -1,0 +1,27 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+reports/bug_report_*.md
+reports/benchmarks/
+.workspaces/
+.vscode
+.claude
+/reports
+
+# SWE-bench harness/runner artifacts if ever run from the repo root instead of
+# reports/ (the harness writes logs/ and <model>.<run_id>.json to the CWD).
+/logs/
+/*.jsonl
+/selfheal.*.json
+/gold.*.json
+
+docs/_build/
+node_modules/
