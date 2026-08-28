@@ -1,9 +1,0 @@
-{
-  "name": "selfhealing-docs-build",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Build script for the Self-Healing System technical documentation (.docx)",
-  "dependencies": {
-    "docx": "^9.0.0"
-  }
-}
