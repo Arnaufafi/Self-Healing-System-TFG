@@ -1,0 +1,47 @@
+%% Figura 4.4 - Graf de guariment (fix-first) com a diagrama de flux
+%% Render: https://mermaid.live  (Actions -> Export SVG/PNG)
+flowchart TD
+    %% --- nodes ---
+    crash([crash de producció]):::ext
+    test([test de CI que falla]):::ext
+    BS[bootstrap · inicialització]:::gray
+    FIX[fix · Corrector]:::agent
+    VAL[validate · sandbox]:::agent
+    IMM[immunize · Tester<br/>només en crash]:::agentOpt
+    RC[report_commit · Reporter]:::agent
+    RB[rollback · reversió]:::rec
+    PM[post_mortem · informe]:::rec
+    FI([Fi]):::ext
+    D1{pedaç<br/>produït?}
+    D2{correcció<br/>acceptada?}
+    D3{error<br/>encadenat?}
+    D3b{queda<br/>pressupost?}
+    D4{queden<br/>reintents?}
+
+    %% --- edges ---
+    crash --> BS
+    test --> BS
+    BS --> FIX
+    FIX --> D1
+    D1 -->|sí| VAL
+    D1 -->|no| RB
+    VAL --> D2
+    D2 -->|"sí · verd o error diferent"| IMM
+    D2 -->|"no · mateix error / regressió"| RB
+    IMM --> RC
+    RC --> D3
+    D3 -->|no| FI
+    D3 -->|sí| D3b
+    D3b -->|"sí · error encadenat"| FIX
+    D3b -->|no| FI
+    RB --> D4
+    D4 -->|"sí · reintent"| FIX
+    D4 -->|no| PM
+    PM --> FI
+
+    %% --- colors (opcional) ---
+    classDef ext fill:#f1efe8,stroke:#888780,color:#2c2c2a
+    classDef gray fill:#f1efe8,stroke:#888780,color:#2c2c2a
+    classDef agent fill:#e1f5ee,stroke:#0f6e56,color:#04342c
+    classDef agentOpt fill:#e1f5ee,stroke:#0f6e56,color:#04342c,stroke-dasharray:5 4
+    classDef rec fill:#faece7,stroke:#993c1d,color:#4a1b0c

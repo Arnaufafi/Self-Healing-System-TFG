@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="550" viewBox="0 0 680 550" role="img" font-family="Segoe UI, Arial, sans-serif">
+<title>Recorregut del graf - seaborn-2848 (Run 3)</title>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#5F5E5A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<g fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"><rect x="310" y="50" width="140" height="44" rx="8"/><rect x="310" y="130" width="140" height="44" rx="8"/><rect x="310" y="210" width="140" height="44" rx="8"/><rect x="340" y="450" width="80" height="36" rx="8"/></g>
+<g fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"><rect x="310" y="290" width="140" height="44" rx="8"/><rect x="310" y="370" width="140" height="44" rx="8"/><rect x="120" y="508" width="14" height="14" rx="4"/></g>
+<g fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"><rect x="120" y="210" width="140" height="44" rx="8"/><rect x="120" y="370" width="140" height="44" rx="8"/><rect x="310" y="508" width="14" height="14" rx="4"/></g>
+<g font-size="14" text-anchor="middle" dominant-baseline="central" fill="#2C2C2A"><text x="380" y="72">bootstrap</text><text x="380" y="152">fix</text><text x="380" y="232">validate</text><text x="380" y="468">fi</text></g>
+<g font-size="14" text-anchor="middle" dominant-baseline="central" fill="#04342C"><text x="380" y="312">immunize</text><text x="380" y="392">report_commit</text></g>
+<g font-size="14" text-anchor="middle" dominant-baseline="central" fill="#4A1B0C"><text x="190" y="232">rollback</text><text x="190" y="392">post_mortem</text></g>
+<g stroke="#5F5E5A" stroke-width="1.5" fill="none" marker-end="url(#arrow)">
+<line x1="380" y1="98" x2="380" y2="126"/><line x1="380" y1="178" x2="380" y2="206"/><line x1="380" y1="258" x2="380" y2="286"/><line x1="380" y1="338" x2="380" y2="366"/>
+<line x1="306" y1="232" x2="264" y2="232"/><path d="M 190 206 L 190 152 L 306 152"/><path d="M 454 392 L 530 392 L 530 152 L 454 152"/>
+<line x1="190" y1="258" x2="190" y2="366"/><path d="M 190 418 L 190 468 L 336 468"/></g>
+<g font-size="12" dominant-baseline="central" fill="#5F5E5A">
+<text x="392" y="112">1</text><text x="392" y="192">5</text><text x="392" y="272">2</text><text x="392" y="352">2</text>
+<text x="285" y="216" text-anchor="middle">3</text><text x="228" y="140">2</text><text x="542" y="272">2</text><text x="202" y="312">1</text><text x="252" y="456">1</text>
+<text x="142" y="515">progr&#233;s consolidat</text><text x="332" y="515">recuperaci&#243;</text></g>
+</svg>

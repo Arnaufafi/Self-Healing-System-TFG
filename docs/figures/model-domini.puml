@@ -1,0 +1,115 @@
+' Figura 4.3 - Model de domini del sistema d'autocuracio de codi
+' Render:  java -jar plantuml.jar -charset UTF-8 -tsvg docs/figures/model-domini.puml
+@startuml
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+
+package "Entrada" {
+  class TriggerEvent {
+    trigger_type
+  }
+  class CrashReport {
+    incident_id
+    service_name
+    stack_trace
+    commit_sha
+  }
+  class FailingTest {
+    node_id
+    source
+    last_failure_output
+  }
+}
+
+package "Identitat de l'error" {
+  class ErrorSignature {
+    kind
+    exc_type
+    location
+    normalized_msg
+    +fingerprint()
+    +matches()
+  }
+}
+
+package "Cicle de correcció" {
+  class FixContext {
+    failure_output
+    reproduce_cmd
+    previous_attempts
+    fix_diff
+  }
+  class SourceExcerpt {
+    file_path
+    content
+  }
+  class Patch {
+    diff_text
+    author_agent
+  }
+  class SandboxResult {
+    verdict
+    exit_code
+    duration_seconds
+    logs_tail
+  }
+  class RegressionTest {
+    path
+    node_id
+    source
+  }
+}
+
+package "Cicle de registre" {
+  class FailedAttempt {
+    attempt_index
+    cycle_index
+    error_summary
+  }
+  class ResolvedError {
+    commit_sha
+    test_path
+  }
+}
+
+class HealingState <<TypedDict>> {
+  .. entrada ..
+  workspace_path
+  .. sessió ..
+  reproduce_cmd
+  regression_cmd
+  max_retries
+  error_cycle_budget
+  sandbox_image
+  .. error actual ..
+  current_failure_output
+  attempt_count
+  error_cycle_index
+  .. acumuladors ..
+  logs
+  .. terminal ..
+  is_resolved
+  post_mortem_path
+}
+
+TriggerEvent *-- "0..1" CrashReport
+TriggerEvent *-- "0..1" FailingTest
+note bottom of TriggerEvent : exactament un\nde crash_report / failing_test
+
+FixContext *-- "*" SourceExcerpt
+note bottom of FixContext : entrada transitòria dels agents\n(no es guarda a HealingState)
+
+FailedAttempt --> "0..1" Patch
+FailedAttempt --> "0..1" SandboxResult
+ResolvedError --> "1" ErrorSignature
+
+HealingState *-- "1" TriggerEvent : trigger
+HealingState *-- "0..1" ErrorSignature : current
+HealingState *-- "0..1" ErrorSignature : post_fix
+HealingState *-- "0..1" Patch : current
+HealingState *-- "0..1" SandboxResult : current
+HealingState *-- "0..1" RegressionTest : current
+HealingState o-- "*" FailedAttempt : failed_attempts
+HealingState o-- "*" ResolvedError : resolved_errors
+@enduml
